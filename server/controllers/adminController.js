@@ -6,18 +6,33 @@ const bcrypt = require("bcryptjs");
 // Register a new client
 exports.registerClient = async (req, res) => {
   try {
-    const { username, regNo, email, password, investmentPlan } = req.body;
+    const {
+      firstName,
+      lastName,
+      address,
+      regNo,
+      adhaarNo,
+      panNo,
+      email,
+      password,
+      investmentPlan,
+    } = req.body;
 
     // Validate inputs and check if user exists already
-    const existingUser = await User.findOne({ regNo });
+    const existingUser = await User.findOne({ email });
     if (existingUser) {
-      return res.status(400).json({ error: "Username already exists" });
+      return res.status(400).json({ error: "email already exists" });
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
     const newUser = new User({
-      username,
+      firstName,
+      lastName,
+      fullName: `${firstName} ${lastName}`,
+      address,
       regNo,
+      adhaarNo,
+      panNo,
       email,
       password: hashedPassword,
       role: "client",
@@ -38,7 +53,7 @@ exports.registerClient = async (req, res) => {
 // Add a new transaction (deposit/withdrawal)
 exports.addTransaction = async (req, res) => {
   try {
-    const { regNo, type, amount } = req.body;
+    const { regNo, type, amount, description } = req.body;
 
     // Validate transaction type and amount
     if (!["deposit", "withdrawal"].includes(type)) {
@@ -53,9 +68,9 @@ exports.addTransaction = async (req, res) => {
     // Create and save the transaction
     const transaction = new Transaction({
       user: client._id,
-      regNo: client.regNo,
-      type,
       amount,
+      type,
+      description,
       date: new Date(),
     });
 
@@ -71,7 +86,7 @@ exports.addTransaction = async (req, res) => {
     }
 
     // Add the transaction ID to the client's transactions array
-    client.transactions.push({ _id: transaction._id });
+    client.transactions.push(transaction._id);
     await client.save();
 
     res
@@ -106,8 +121,7 @@ exports.updateInvestmentPlan = async (req, res) => {
   }
 };
 
-// Fetch client details (optional)
-// Fetch client details (optional)
+// Fetch client details
 exports.getClientDetails = async (req, res) => {
   try {
     const { regNo } = req.body;
